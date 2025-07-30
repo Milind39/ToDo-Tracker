@@ -93,6 +93,7 @@ PyJWT==2.10.1
 pylint==3.3.7
 python-dateutil==2.9.0.post0
 python-docx==1.2.0
+python-dotenv==1.1.1
 python-json-logger==3.3.0
 python-lsp-jsonrpc==1.1.2
 python-lsp-server==1.13.0
