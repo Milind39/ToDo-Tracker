@@ -36,3 +36,31 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# === General ===
+.DS_Store
+*.log
+*.pem
+*.tsbuildinfo
+
+# === Node.js / Frontend ===
+/frontend/node_modules
+/frontend/.next
+/frontend/out
+/frontend/.env*
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+/frontend/.vercel
+
+# === Python / Backend ===
+__pycache__/
+/backend/api/__pycache__/
+/backend/tracker/__pycache__/
+/backend/api/.env
+/backend/tracker/.env
+
+# === Build ===
+/build
+

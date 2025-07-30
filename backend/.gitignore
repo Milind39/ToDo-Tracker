@@ -1,0 +1,9 @@
+# .gitignore inside backend/
+
+# Python or FastAPI related
+__pycache__/
+*.pyc
+
+# env files
+/api/.env
+/tracker/.env
