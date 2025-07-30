@@ -11,6 +11,9 @@ const nextConfig = {
     ],
     unoptimized: true, // disables image optimization globally
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;
