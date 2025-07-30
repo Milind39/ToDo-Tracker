@@ -26,9 +26,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
-/api/.env
-/tracker/.env
+/frontend/.env*.local
+/backend/api/.env
+/backend/tracker/.env
 
 # vercel
 .vercel
