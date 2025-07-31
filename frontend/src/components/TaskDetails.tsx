@@ -40,6 +40,8 @@ export default function TaskDetail({
   const deadline = task.deadline ? new Date(task.deadline) : today;
   const createdAt = task.created_at ? new Date(task.created_at) : today;
   const [loadingProgress, setLoadingProgress] = useState(false);
+  const [lastLogDate, setLastLogDate] = useState<string | null>(null);
+
   const router = useRouter();
 
   const daysLeft = Math.max(
@@ -106,18 +108,33 @@ export default function TaskDetail({
           const data = await apiFetch(
             `/screen-time?task_id=${task.id}&date=${todayStr}`
           );
-          console.log("✅ Response from /screen-time:", data);
 
           const logs = data?.duration_minutes || [];
-          const todayLogs = logs.filter((log: any) => log.date === todayStr);
-          console.log("📝 Today logs:", todayLogs);
 
-          const total = todayLogs.reduce(
-            (sum: number, log: any) => sum + (log.seconds || 0),
-            0
-          );
-          setFrozenSeconds(total);
-          console.log("🧊 Frozen seconds set to:", total);
+          if (logs.length === 0) {
+            setFrozenSeconds(0);
+            setLastLogDate(null);
+            return;
+          }
+
+          let logToShow = logs.find((log: any) => log.date === todayStr);
+
+          if (!logToShow) {
+            // Sort logs by date descending and take the latest one
+            const sortedLogs = logs
+              .map((log: any) => ({ ...log, dateObj: new Date(log.date) }))
+              .sort(
+                (a: any, b: any) => b.dateObj.getTime() - a.dateObj.getTime()
+              );
+
+            logToShow = sortedLogs[0];
+          }
+
+          if (logToShow) {
+            setFrozenSeconds(logToShow.seconds || 0);
+            setLastLogDate(logToShow.date);
+            console.log("🧊 Showing screen time for:", logToShow.date);
+          }
         } catch (error) {
           console.error("❌ Failed to fetch screen time:", error);
           setFrozenSeconds(null);
@@ -177,6 +194,12 @@ export default function TaskDetail({
               <p className="text-xs text-gray-700">
                 Today: {new Date().toDateString()}
               </p>
+
+              {lastLogDate && (
+                <p className="text-xs text-gray-700">
+                  Last-Log: {new Date(lastLogDate).toDateString()}
+                </p>
+              )}
 
               <h4 className="text-sm font-semibold text-black">
                 {formatLoggedTime(displayedSeconds)} / {perDayHours} hr
