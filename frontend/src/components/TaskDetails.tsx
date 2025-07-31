@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardDescription, CardHeader } from "./ui/card";
-import Link from "next/link";
-import { fetchWithNgrok } from "@/utils/fetchWithNgrok";
+import { fetch } from "@/utils/fetch";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
@@ -76,16 +75,13 @@ export default function TaskDetail({
       if (!task.id || !task.appName || readonly) return;
 
       try {
-        await fetchWithNgrok(
-          `/${task.is_active ? "start-tracker" : "stop-tracker"}`,
-          {
-            method: "POST",
-            body: JSON.stringify({
-              task_id: task.id,
-              appname: task.appName,
-            }),
-          }
-        );
+        await fetch(`/${task.is_active ? "start-tracker" : "stop-tracker"}`, {
+          method: "POST",
+          body: JSON.stringify({
+            task_id: task.id,
+            appname: task.appName,
+          }),
+        });
       } catch (err) {
         console.error("❌ Error controlling tracker:", err);
       }
@@ -100,7 +96,7 @@ export default function TaskDetail({
       if (!task.is_active && task.id) {
         const todayStr = new Date().toISOString().split("T")[0];
         try {
-          const data = await fetchWithNgrok(
+          const data = await fetch(
             `/screen-time?task_id=${task.id}&date=${todayStr}`
           );
 

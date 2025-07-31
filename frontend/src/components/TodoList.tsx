@@ -9,7 +9,6 @@ import {
 } from "react";
 import { format } from "date-fns";
 import { supabase } from "@/lib/supabase";
-import { apiFetch } from "@/lib/fetcher";
 
 import TaskTable from "./TaskTable";
 import TaskDetail from "./TaskDetails";

@@ -1,6 +1,6 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-export async function fetchWithNgrok(
+export async function fetch(
   path: string,
   options: RequestInit = {}
 ): Promise<any> {
@@ -8,7 +8,6 @@ export async function fetchWithNgrok(
 
   const headers = {
     "Content-Type": "application/json",
-    "ngrok-skip-browser-warning": "true", // ✅ Important to bypass ngrok warning
     ...(options.headers || {}),
   };
 
