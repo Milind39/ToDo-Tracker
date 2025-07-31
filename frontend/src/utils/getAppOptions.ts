@@ -1,5 +1,6 @@
-// utils/getAppOptions.ts
-import { supabase } from "@/utils/supabaseClient";
+// utils/getAppOptions;
+
+import { supabase } from "@/lib/supabase";
 
 export async function getAppOptions() {
   const { data, error } = await supabase.from("app_registry").select("*");
