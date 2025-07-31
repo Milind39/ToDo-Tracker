@@ -164,7 +164,7 @@ export default function TaskDetail({
               </div>
 
               <p className="text-xs text-gray-700">
-                {new Date().toDateString()}
+                Today: {new Date().toDateString()}
               </p>
 
               <h4 className="text-sm font-semibold text-black">

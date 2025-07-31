@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ModeToggle } from "@/components/ThemeToggle";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export type Task = {
   id: number;
@@ -28,6 +29,29 @@ export default function Home() {
 
   const listRef = useRef<any>(null);
   const router = useRouter();
+
+  const [showInstallAlert, setShowInstallAlert] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tracker_installed")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!profile?.tracker_installed) {
+        setShowInstallAlert(true);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   // ✅ Check user auth and role
   useEffect(() => {
@@ -166,6 +190,23 @@ export default function Home() {
           <ModeToggle />
         </div>
       </div>
+      {showInstallAlert && (
+        <Alert variant="destructive">
+          <AlertTitle>Enable Screen Time Tracking</AlertTitle>
+          <AlertDescription>
+            Download and install the desktop tracker to enable background screen
+            time logging.
+            <br />
+            <a
+              href="https://to-do-tracker-seven.vercel.app/downloads/tracker.zip"
+              download
+              className="underline text-blue-500"
+            >
+              Download tracker.exe
+            </a>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Main Content */}
       <div className="max-w-3xl mx-auto flex flex-col gap-6">
