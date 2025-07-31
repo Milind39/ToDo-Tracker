@@ -95,19 +95,30 @@ export default function TaskDetail({
     const fetchFrozenSeconds = async () => {
       if (!task.is_active && task.id) {
         const todayStr = new Date().toISOString().split("T")[0];
+        console.log(
+          "📦 Fetching screen time for task:",
+          task.id,
+          "on",
+          todayStr
+        );
+
         try {
           const res = await fetch(
             `/screen-time?task_id=${task.id}&date=${todayStr}`
           );
           const data = await res.json();
+          console.log("✅ Response from /screen-time:", data);
 
           const logs = data?.duration_minutes || [];
           const todayLogs = logs.filter((log: any) => log.date === todayStr);
+          console.log("📝 Today logs:", todayLogs);
+
           const total = todayLogs.reduce(
             (sum: number, log: any) => sum + (log.seconds || 0),
             0
           );
           setFrozenSeconds(total);
+          console.log("🧊 Frozen seconds set to:", total);
         } catch (error) {
           console.error("❌ Failed to fetch screen time:", error);
           setFrozenSeconds(null);
