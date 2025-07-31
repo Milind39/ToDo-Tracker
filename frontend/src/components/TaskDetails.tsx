@@ -103,10 +103,9 @@ export default function TaskDetail({
         );
 
         try {
-          const res = await apiFetch(
+          const data = await apiFetch(
             `/screen-time?task_id=${task.id}&date=${todayStr}`
           );
-          const data = await res.json();
           console.log("✅ Response from /screen-time:", data);
 
           const logs = data?.duration_minutes || [];
