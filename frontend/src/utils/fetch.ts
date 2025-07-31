@@ -1,6 +1,6 @@
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-export async function fetch(
+export async function apiFetch (
   path: string,
   options: RequestInit = {}
 ): Promise<any> {

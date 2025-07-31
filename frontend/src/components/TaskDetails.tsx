@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardDescription, CardHeader } from "./ui/card";
-import { fetch } from "@/utils/fetch";
+import { apiFetch } from "@/utils/fetch";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
@@ -103,7 +103,7 @@ export default function TaskDetail({
         );
 
         try {
-          const res = await fetch(
+          const res = await apiFetch(
             `/screen-time?task_id=${task.id}&date=${todayStr}`
           );
           const data = await res.json();
