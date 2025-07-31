@@ -2,20 +2,19 @@ import time
 import win32gui
 import win32process
 import psutil
-import sys
-import os
-from datetime import datetime
-from supabase import create_client, Client
+import requests
 from dotenv import load_dotenv
+import os
+from supabase import create_client
+
 load_dotenv()
 
-# Supabase init
-supabase: Client = create_client(
-    os.getenv("NEXT_PUBLIC_SUPABASE_URL"),
-    os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
-)
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+API_BACKEND_URL = os.getenv("API_BACKEND_URL")  # e.g., https://your-backend.onrender.com
 
-INTERVAL_SECONDS = 60
+INTERVAL_SECONDS = 60  # Poll every minute
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 def get_active_window_app():
@@ -29,107 +28,46 @@ def get_active_window_app():
 
 
 def get_active_tasks():
-    res = supabase.table("tasks").select("id, appname").eq("is_active", True).execute()
-    print("Active task query result:", res.data)  # 👈 add this
-    return res.data if res.data else []
+    try:
+        res = supabase.table("tasks").select("id, appname").eq("is_active", True).execute()
+        return res.data or []
+    except Exception as e:
+        print("[ERROR] Failed to fetch active tasks:", e)
+        return []
 
 
-def update_screen_time(task_id, app_name, interval_sec=0):
-    now = datetime.now()
-    date_str = now.strftime("%Y-%m-%d")
-    time_str = now.strftime("%H:%M:%S")
-
-    result = (
-        supabase.table("screen_time")
-        .select("id, duration_minutes")
-        .eq("task_id", task_id)
-        .maybe_single()
-        .execute()
-    )
-
-    if result and result.data:
-        existing = result.data
-        minutes_list = existing["duration_minutes"] or []
-
-        found_today = False
-        for entry in minutes_list:
-            if entry["date"] == date_str:
-                entry["time"] = time_str
-                entry["seconds"] += interval_sec
-                found_today = True
-                break
-
-        if not found_today:
-            minutes_list.append({
-                "date": date_str,
-                "time": time_str,
-                "seconds": interval_sec
-            })
-
-        supabase.table("screen_time").update({
-            "duration_minutes": minutes_list,
-            "updated_at": now.strftime("%Y-%m-%d %H:%M:%S")
-        }).eq("id", existing["id"]).execute()
-
-    else:
-        supabase.table("screen_time").insert({
-            "task_id": task_id,
-            "app_name": app_name,
-            "date": date_str,
-            "duration_minutes": [{
-                "date": date_str,
-                "time": time_str,
-                "seconds": interval_sec
-            }],
-            "updated_at": now.strftime("%Y-%m-%d %H:%M:%S")
-        }).execute()
+def send_usage(task_id, app_name, seconds):
+    try:
+        response = requests.post(
+            f"{API_BACKEND_URL}/update-usage",
+            json={
+                "task_id": task_id,
+                "app_name": app_name,
+                "seconds": seconds
+            }
+        )
+        print(f"[SUCCESS] Usage sent for {app_name} ({task_id}): {response.status_code}")
+    except Exception as e:
+        print("[ERROR] Failed to send usage:", e)
 
 
-def stop_flag_exists(task_id):
-    return os.path.exists(f"stop_{task_id}.flag")
-
-
-def track_specific_task(task_id, app_name):
-    print(f"[START] Tracker started for task_id {task_id} ({app_name})")
+def run_tracker():
+    print("[SUCCESS] Tracker Agent started.")
     while True:
-        if stop_flag_exists(task_id):
-            print(f"[STOP] Stop flag found for task {task_id}, exiting...")
-            break
-
         active_window = get_active_window_app()
-        if active_window and app_name.lower() in active_window.lower():
-            print(f"[MATCHED] {app_name} matched {active_window} — +{INTERVAL_SECONDS}s")
-            update_screen_time(task_id, app_name, INTERVAL_SECONDS)
-
-        time.sleep(INTERVAL_SECONDS)
-
-
-def track_all_active_tasks():
-    print("[START] Tracker started. Watching for ALL active tasks...")
-    while True:
-        active_tasks = get_active_tasks()
-        if not active_tasks:
-            print("[IDLE] No active tasks. Sleeping...")
-            time.sleep(10)
+        if not active_window:
+            time.sleep(INTERVAL_SECONDS)
             continue
 
-        active_window = get_active_window_app()
-        if active_window:
-            for task in active_tasks:
-                if task["appname"].lower() in active_window.lower():
-                    print(f"Matched {task['appname']} — task_id {task['id']} — +{INTERVAL_SECONDS}s")
-                    update_screen_time(task["id"], task["appname"], INTERVAL_SECONDS)
-                    break
+        tasks = get_active_tasks()
+        for task in tasks:
+            if task["appname"].lower() in active_window.lower():
+                print(f"[MATCH] {task['appname']} is active in {active_window}")
+                send_usage(task["id"], task["appname"], INTERVAL_SECONDS)
+                break
 
         time.sleep(INTERVAL_SECONDS)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3:
-        # Track a single specific task
-        task_id = int(sys.argv[1])
-        app_name = sys.argv[2]
-        track_specific_task(task_id, app_name)
-    else:
-        # Track all active tasks
-        track_all_active_tasks()
+    run_tracker()
