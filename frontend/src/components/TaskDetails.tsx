@@ -127,7 +127,7 @@ export default function TaskDetail({
     };
 
     fetchFrozenSeconds();
-  }, [task.id, task.is_active]);
+  }, [task?.id, task?.is_active]);
 
   const displayedSeconds = task.is_active
     ? loggedSeconds
