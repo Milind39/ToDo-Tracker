@@ -96,9 +96,10 @@ export default function TaskDetail({
       if (!task.is_active && task.id) {
         const todayStr = new Date().toISOString().split("T")[0];
         try {
-          const data = await fetch(
+          const res = await fetch(
             `/screen-time?task_id=${task.id}&date=${todayStr}`
           );
+          const data = await res.json();
 
           const logs = data?.duration_minutes || [];
           const todayLogs = logs.filter((log: any) => log.date === todayStr);
