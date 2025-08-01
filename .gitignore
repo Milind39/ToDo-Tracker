@@ -53,6 +53,8 @@ next-env.d.ts
 /frontend/yarn-debug.log*
 /frontend/yarn-error.log*
 /frontend/.vercel
+frontend/next.config.mjs
+frontend/package-lock.json
 
 # === Python / Backend ===
 __pycache__/
