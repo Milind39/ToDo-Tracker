@@ -202,7 +202,7 @@ export default function TaskDetail({
               )}
 
               <h4 className="text-sm font-semibold text-black">
-                {formatLoggedTime(displayedSeconds)} / {perDayHours} hr
+                Today: {formatLoggedTime(displayedSeconds)} / {perDayHours} hr
               </h4>
 
               <p
