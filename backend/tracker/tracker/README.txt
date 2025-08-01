@@ -1,7 +1,8 @@
-Download and extract
+🗂️ How to Install ToDo-Tracker
 
-Double-click tracker.exe
+1. Unzip all contents to a folder.
+2. Double-click `tracker_setup.exe`
+3. Enter your login when prompted.
+4. Tracker will auto-run in background on every boot.
 
-Enter email and password when prompted
-
-Tracker will auto-start next time
+✅ DO NOT run files from inside the ZIP without extracting first.
