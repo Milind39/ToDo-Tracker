@@ -190,7 +190,7 @@ export default function Home() {
           <ModeToggle />
         </div>
       </div>
-      {showInstallAlert && (
+      {showInstallAlert ? (
         <Alert variant="destructive">
           <AlertTitle>Enable Screen Time Tracking</AlertTitle>
           <AlertDescription>
@@ -206,23 +206,23 @@ export default function Home() {
             </a>
           </AlertDescription>
         </Alert>
-      )}
-
-      {/* Main Content */}
-      <div className="max-w-3xl mx-auto flex flex-col gap-6">
-        <TodoInput onAdd={addTask} />
-        <TodoFilter
-          selectedFilter={selectedFilter}
-          onTabChange={setSelectedFilter}
-        />
-        <div className="mx-auto">
-          <TodoList
-            ref={listRef}
+      ) : (
+        // Main Content
+        <div className="max-w-3xl mx-auto flex flex-col gap-6">
+          <TodoInput onAdd={addTask} />
+          <TodoFilter
             selectedFilter={selectedFilter}
-            tasks={filteredTasks}
+            onTabChange={setSelectedFilter}
           />
+          <div className="mx-auto">
+            <TodoList
+              ref={listRef}
+              selectedFilter={selectedFilter}
+              tasks={filteredTasks}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

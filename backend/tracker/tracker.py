@@ -6,10 +6,12 @@ import requests
 from dotenv import load_dotenv
 import os
 import json
+import sys
 from pathlib import Path
+import winreg
 from supabase import create_client, Client
 
-# Load environment variables
+# Load .env
 load_dotenv()
 
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
@@ -17,18 +19,19 @@ SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 API_BACKEND_URL = os.getenv("API_BACKEND_URL")
 INTERVAL_SECONDS = 60
 
-CONFIG_FILE = Path.home() / ".drnest_tracker_config.json"
+CONFIG_FILE = Path.home() / ".todo_tracker_config.json"
 
+# Initialize Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
-# Save user credentials locally
+# ✅ Save user credentials locally
 def save_credentials(user_id, access_token):
     with open(CONFIG_FILE, "w") as f:
         json.dump({"user_id": user_id, "access_token": access_token}, f)
 
 
-# Load credentials from config
+# ✅ Load credentials from config
 def load_credentials():
     try:
         with open(CONFIG_FILE, "r") as f:
@@ -38,9 +41,21 @@ def load_credentials():
         return None, None
 
 
-# Login prompt for first-time setup or expired token
+# ✅ Add to Windows startup
+def add_to_startup():
+    exe_path = sys.executable  # Full path to tracker.exe
+    reg_key = r"Software\Microsoft\Windows\CurrentVersion\Run"
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, 0, winreg.KEY_SET_VALUE) as key:
+            winreg.SetValueEx(key, "ToDoTracker", 0, winreg.REG_SZ, exe_path)
+        print("✅ Tracker added to Windows startup.")
+    except Exception as e:
+        print("⚠️ Failed to add tracker to startup:", e)
+
+
+# ✅ Login prompt for first time or expired token
 def login_prompt():
-    print("🔐 Login to Dr. Nest Tracker")
+    print("🔐 Login to ToDo-Tracker")
     email = input("Email: ")
     password = input("Password: ")
     try:
@@ -60,13 +75,16 @@ def login_prompt():
             headers={"Authorization": f"Bearer {access_token}"}
         )
 
+        # Add to startup
+        add_to_startup()
+
         return user.id, access_token
     except Exception as e:
         print("[ERROR] Login failed:", e)
         return None, None
 
 
-# Get currently active app's process name
+# ✅ Get currently active window process name
 def get_active_window_app():
     try:
         hwnd = win32gui.GetForegroundWindow()
@@ -80,7 +98,7 @@ def get_active_window_app():
         return None
 
 
-# Fetch all active tasks from Supabase
+# ✅ Fetch active tasks from Supabase
 def get_active_tasks(user_id):
     try:
         res = supabase.table("tasks") \
@@ -94,7 +112,7 @@ def get_active_tasks(user_id):
         return []
 
 
-# Send screen time usage to backend
+# ✅ Send usage to backend
 def send_usage(task_id, app_name, seconds, token):
     try:
         response = requests.post(
@@ -116,10 +134,10 @@ def send_usage(task_id, app_name, seconds, token):
         return True
     except Exception as e:
         print("[ERROR] Failed to send usage:", e)
-        return True  # Do not break loop on network issues
+        return True
 
 
-# Main tracking loop
+# ✅ Main Tracker Loop
 def run_tracker():
     if not CONFIG_FILE.exists():
         login_prompt()
@@ -128,7 +146,7 @@ def run_tracker():
     if not user_id or not access_token:
         user_id, access_token = login_prompt()
 
-    print("[SUCCESS] Tracker Agent started.")
+    print("[✅] Tracker Agent started. Watching your active apps...\n")
     while True:
         active_window = get_active_window_app()
         if not active_window:
@@ -143,7 +161,6 @@ def run_tracker():
                 print(f"[MATCH] {task['appname']} is active in {active_window}")
                 success = send_usage(task["id"], task["appname"], INTERVAL_SECONDS, access_token)
                 if not success:
-                    # Retry login if token expired
                     user_id, access_token = login_prompt()
                 matched = True
                 break

@@ -7,3 +7,4 @@ __pycache__/
 # env files
 /api/.env
 /tracker/.env
+/tracker/tracker/.env
