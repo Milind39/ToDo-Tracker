@@ -6,22 +6,39 @@ import requests
 from dotenv import load_dotenv
 import os
 import json
-from supabase import create_client
+from pathlib import Path
+from supabase import create_client, Client
 
+# Load environment variables
 load_dotenv()
 
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 API_BACKEND_URL = os.getenv("API_BACKEND_URL")
 INTERVAL_SECONDS = 60
-CONFIG_FILE = "user_config.json"
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+CONFIG_FILE = Path.home() / ".drnest_tracker_config.json"
 
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+# Save user credentials locally
 def save_credentials(user_id, access_token):
     with open(CONFIG_FILE, "w") as f:
         json.dump({"user_id": user_id, "access_token": access_token}, f)
 
+
+# Load credentials from config
+def load_credentials():
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            data = json.load(f)
+            return data.get("user_id"), data.get("access_token")
+    except Exception:
+        return None, None
+
+
+# Login prompt for first-time setup or expired token
 def login_prompt():
     print("🔐 Login to Dr. Nest Tracker")
     email = input("Email: ")
@@ -37,27 +54,34 @@ def login_prompt():
         print(f"✅ Logged in as {user.email}")
 
         # Notify backend
-        requests.post(f"{API_BACKEND_URL}/tracker-installed", json={"user_id": user.id})
+        requests.post(
+            f"{API_BACKEND_URL}/tracker-installed",
+            json={"user_id": user.id},
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
         return user.id, access_token
     except Exception as e:
         print("[ERROR] Login failed:", e)
         return None, None
 
-def get_user_id():
-    with open(CONFIG_FILE, "r") as f:
-        return json.load(f).get("user_id")
 
+# Get currently active app's process name
 def get_active_window_app():
     try:
         hwnd = win32gui.GetForegroundWindow()
+        if hwnd == 0:
+            return None
         _, pid = win32process.GetWindowThreadProcessId(hwnd)
         process = psutil.Process(pid)
         return process.name()
-    except Exception:
+    except Exception as e:
+        print("[WARN] Could not get active window:", e)
         return None
 
-def get_active_tasks():
-    user_id = get_user_id()
+
+# Fetch all active tasks from Supabase
+def get_active_tasks(user_id):
     try:
         res = supabase.table("tasks") \
             .select("id, appname") \
@@ -69,7 +93,9 @@ def get_active_tasks():
         print("[ERROR] Failed to fetch active tasks:", e)
         return []
 
-def send_usage(task_id, app_name, seconds):
+
+# Send screen time usage to backend
+def send_usage(task_id, app_name, seconds, token):
     try:
         response = requests.post(
             f"{API_BACKEND_URL}/update-usage",
@@ -77,31 +103,53 @@ def send_usage(task_id, app_name, seconds):
                 "task_id": task_id,
                 "app_name": app_name,
                 "seconds": seconds
+            },
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
             }
         )
+        if response.status_code == 401:
+            print("[ERROR] Unauthorized - token may be expired. Please re-login.")
+            return False
         print(f"[SUCCESS] Usage sent for {app_name} ({task_id}): {response.status_code}")
+        return True
     except Exception as e:
         print("[ERROR] Failed to send usage:", e)
+        return True  # Do not break loop on network issues
 
+
+# Main tracking loop
 def run_tracker():
-    if not os.path.exists(CONFIG_FILE):
+    if not CONFIG_FILE.exists():
         login_prompt()
+
+    user_id, access_token = load_credentials()
+    if not user_id or not access_token:
+        user_id, access_token = login_prompt()
 
     print("[SUCCESS] Tracker Agent started.")
     while True:
         active_window = get_active_window_app()
         if not active_window:
-            time.sleep(INTERVAL_SECONDS)
+            time.sleep(10)
             continue
 
-        tasks = get_active_tasks()
+        tasks = get_active_tasks(user_id)
+        matched = False
+
         for task in tasks:
             if task["appname"].lower() in active_window.lower():
                 print(f"[MATCH] {task['appname']} is active in {active_window}")
-                send_usage(task["id"], task["appname"], INTERVAL_SECONDS)
+                success = send_usage(task["id"], task["appname"], INTERVAL_SECONDS, access_token)
+                if not success:
+                    # Retry login if token expired
+                    user_id, access_token = login_prompt()
+                matched = True
                 break
 
-        time.sleep(INTERVAL_SECONDS)
+        time.sleep(INTERVAL_SECONDS if matched else 10)
+
 
 if __name__ == "__main__":
     run_tracker()
