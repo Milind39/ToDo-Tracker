@@ -1,5 +1,6 @@
 # Todo App
-################# ALERT MESSAGE 
+# ALERT MESSAGE 
+
 Due to supabase ban in india the link to website is not working, but u can still cole the repo and do workaround your own backend!!
 This is a monorepo for the fullstack to-do app.
 
